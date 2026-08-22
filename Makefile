@@ -3,16 +3,18 @@ BINARY   := dotf
 DIST     := dist
 VERSION  := $(shell tr -d '[:space:]' < version/VERSION)
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
-BUILD_DATE := $(shell date -u +%Y-%m-%d)
+# dev 构建时间含时分(本地时间),便于 -v 确认构建新鲜度;release 由 goreleaser 注入
+BUILD_DATE := $(shell date "+%Y-%m-%d %H:%M")
 
 # 构建渠道：dev = 本地开发构建（dotf -v 显示 0.1.0-dev）；release = 发布版（goreleaser 覆盖注入）。
 # 覆盖示例: make build CHANNEL=release
 CHANNEL  ?= dev
 
 # 版本变量在 cli 包（cli.Commit / cli.Date / cli.Channel），main 委托 cli.Run
+# Date 值含空格,需引号包裹(-ldflags 解析支持 shell 式引号)
 LDFLAGS  := -s -w \
 	-X github.com/havoc420/dotfiles/cli.Commit=$(GIT_COMMIT) \
-	-X github.com/havoc420/dotfiles/cli.Date=$(BUILD_DATE) \
+	-X 'github.com/havoc420/dotfiles/cli.Date=$(BUILD_DATE)' \
 	-X github.com/havoc420/dotfiles/cli.Channel=$(CHANNEL)
 
 .PHONY: build run release snapshot install test clean help

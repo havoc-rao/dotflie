@@ -9,13 +9,13 @@ cd "$ROOT"
 
 VERSION="$(tr -d '[:space:]' < version/VERSION)"
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo none)"
-DATE="$(date -u +%Y-%m-%d)"
+DATE="$(date "+%Y-%m-%d %H:%M")"   # dev 构建时间含时分,便于确认构建新鲜度
 CHANNEL="${CHANNEL:-dev}"
 
 echo "==> building dotf v${VERSION} (${CHANNEL}, commit ${COMMIT}, ${DATE})"
 mkdir -p dist
 go build -trimpath -ldflags "-s -w \
   -X github.com/havoc420/dotfiles/cli.Commit=${COMMIT} \
-  -X github.com/havoc420/dotfiles/cli.Date=${DATE} \
+  -X 'github.com/havoc420/dotfiles/cli.Date=${DATE}' \
   -X github.com/havoc420/dotfiles/cli.Channel=${CHANNEL}" -o dist/dotf .
 echo "==> done: dist/dotf"

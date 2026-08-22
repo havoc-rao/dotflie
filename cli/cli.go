@@ -36,6 +36,10 @@ func Run(args []string) error {
 	switch cmd {
 	case "init":
 		return cmdInit(rest)
+	case "add":
+		return cmdAdd(rest)
+	case "path":
+		return cmdPath(rest)
 	case "list":
 		return cmdList(rest)
 	case "status":
@@ -62,7 +66,7 @@ func Run(args []string) error {
 	}
 }
 
-// load 向上查找 manifest 并加载。
+// load 向上查找 manifest 并加载 paths,优先级:主清单 < .dotfiles.<hostname>.yaml(共享) < .dotfiles.env(私有)。
 func load() (*Manifest, string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -76,6 +80,15 @@ func load() (*Manifest, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
+	over, err := LoadHostPaths(root)
+	if err != nil {
+		return nil, "", err
+	}
+	env, err := LoadEnvPaths(root)
+	if err != nil {
+		return nil, "", err
+	}
+	m.Paths = mergePaths(mergePaths(m.Paths, over), env)
 	return m, root, nil
 }
 
@@ -175,11 +188,24 @@ func usage() {
 
 用法:
   dotf init              在当前目录生成 .dotfiles.yaml 模板
+  dotf add <dest>        收编本机路径:自动 mv 进仓库、记录清单并建链
+  dotf path              管理机器路径变量 (list/get/set/unset)
   dotf list              列出所有映射配置
   dotf status            显示每个映射的链接状态
   dotf link [目标...]    建立符号链接 (目标可匹配 src/dest 名称)
   dotf unlink [目标...]  移除符号链接
   dotf update [版本]     从 GitHub Releases 自更新 (--check 仅检查)
+
+add 选项:
+  --as <src>     归档位置(相对仓库根;缺省自动镜像 dest 去掉 home 前缀)
+  --force        覆盖仓库内已存在的归档 src
+  --no-link      只迁移记录,暂不建链
+
+paths 说明:
+  dest 中可用 {key} 引用路径变量,优先级由低到高:
+  主清单 paths 段 < .dotfiles.<hostname>.yaml(dotf path set --shared) <
+  .dotfiles.env(默认写入,已 gitignore 不提交)。
+  示例: dest: "{projects}/space-labeler/.vscode/shr"(引用 {key} 时建议整体加引号)
 
 交互:
   在终端中直接运行 link/unlink(不带目标参数)会进入 TUI 多选:

@@ -2,9 +2,11 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/havoc420/dotfiles/tui"
 )
@@ -27,7 +29,43 @@ func cmdInit(args []string) error {
 		_ = os.MkdirAll("git", 0o755)
 		_ = os.MkdirAll("nvim", 0o755)
 	}
-	return os.WriteFile(path, []byte(DefaultTemplate), 0o644)
+	if err := os.WriteFile(path, []byte(DefaultTemplate), 0o644); err != nil {
+		return err
+	}
+	// 生成本机路径文件的示例副本,并把私有文件加入 .gitignore
+	_ = os.WriteFile(envExampleFile(), []byte(envExampleContent), 0o644)
+	_ = ensureGitIgnore()
+	return nil
+}
+
+// envExampleFile 是本机路径示例文件名(= .dotfiles.env.example)。
+func envExampleFile() string {
+	return envFile + ".example"
+}
+
+const envExampleContent = `# dotfiles 本机路径示例:复制为 ` + "`.dotfiles.env`" + ` 后填写本机真实路径
+#   cp .dotfiles.env.example .dotfiles.env
+# 该文件已由 dotf init 加入 .gitignore,不随仓库提交;键名与清单中 {key} 一致。
+#projects=/Users/you/projects
+#space_labeler=/Users/you/Projects/tools/macOS/space-labeler
+`
+
+// ensureGitIgnore 把 .dotfiles.env 追加进 .gitignore(已包含则跳过)。
+func ensureGitIgnore() error {
+	data, err := os.ReadFile(".gitignore")
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if bytes.Contains(data, []byte(envFile)) {
+		return nil
+	}
+	var b strings.Builder
+	b.Write(data)
+	if len(data) > 0 && data[len(data)-1] != '\n' {
+		b.WriteByte('\n')
+	}
+	fmt.Fprintf(&b, "\n# dotf 本机路径(私有)\n%s\n", envFile)
+	return os.WriteFile(".gitignore", []byte(b.String()), 0o644)
 }
 
 // ---- list / status ----

@@ -8,7 +8,7 @@
 - **TUI 交互**（风格参考 shr/tui）：实时过滤、多选勾选、回车执行；脚本/管道环境自动退化为全量模式
 - **目录整链接**：目录条目整体符号链接，适合整目录同步（如 `~/.config/nvim`）
 - **幂等安全**：已正确链接自动跳过；冲突自动识别并提示，`--backup` 可备份后替换
-- **多平台路径**：`dest` 支持 `~` 与 `$ENV` 展开
+- **多平台路径**：`dest` 支持 `~`、`$ENV` 与 `{paths.key}` 变量展开（跨机器路径由 `dotf path set` 按主机注入）
 - **机器可读输出**：`--json` 便于接入其他工具
 
 ## 安装
@@ -59,8 +59,12 @@ dotf update 0.2.0      # 更新到指定版本
 
 ```sh
 dotf init          # 生成 .dotfiles.yaml 模板
-# 编辑清单,把仓库内文件映射到目标位置
-dotf link          # TUI 勾选要链接的条目,回车执行
+# 方式一:手编清单后 link;方式二:直接把本机路径收编进仓库
+dotf add ~/.config/shr/rules.toml --as shr/rules.toml
+# 项目类(dest 命中已设 path 前缀时自动记为 {key}):
+dotf path set space_labeler ~/Projects/.../space-labeler
+dotf add ~/.../space-labeler/.vscode/shr --as shr/projects/space_labeler/.vscode/shr
+dotf link          # TUI 勾选要链接的条目,回车执行(或 --all 全量)
 dotf status        # 查看各条目链接状态
 ```
 
@@ -69,6 +73,8 @@ dotf status        # 查看各条目链接状态
 | 命令 | 说明 |
 | --- | --- |
 | `dotf init [--force]` | 生成 `.dotfiles.yaml` 模板 |
+| `dotf add <dest> [--as <src>]` | 收编本机路径：自动 mv 进仓库、记录清单并建链（可 `--no-link`/`--force`） |
+| `dotf path [list\|get\|set\|unset]` | 管理机器路径变量（默认写私有 `.dotfiles.env`，`--shared` 写 hostname 文件） |
 | `dotf list [--json]` | 列出所有映射配置 |
 | `dotf status [--json]` | 显示每个映射的链接状态 |
 | `dotf link [目标...]` | 建立符号链接 |
@@ -115,8 +121,10 @@ dotf link  ·  space 勾选 · enter 执行 · esc 取消
 `.dotfiles.yaml` 位于仓库根目录（支持 `dotfiles.yaml` 等候选名，运行时可从任意子目录向上查找）：
 
 ```yaml
-# src 相对本仓库根目录; dest 为目标绝对路径(支持 ~ 与 $ENV)
+# src 相对本仓库根目录; dest 为目标绝对路径(支持 ~、$ENV 与 {paths} 引用)
 # 目录条目整体符号链接(不展开内容),便于整目录同步。
+paths:                # 机器无关路径变量(可选):dest 中 {key} 引用
+  projects: ~/projects
 links:
   - src: zsh/.zshrc
     dest: ~/.zshrc
@@ -124,6 +132,31 @@ links:
     dest: ~/.gitconfig
   - src: nvim
     dest: ~/.config/nvim
+```
+
+### paths:跨机器路径变量
+
+项目类配置（如 shr 的 project 级规则）常因各机目录不同而无法写死路径，`paths` 解决"内容共享、路径按机注入"：
+
+- 主清单 `paths` 段写默认值（共享，随仓库提交）
+- 本机私有覆盖：`dotf path set <key> <dir>` 默认写入 `.dotfiles.env`（**KEY=value 格式，已由 `dotf init` 加入 `.gitignore`，不提交**）；`dotf init` 同时生成 `.dotfiles.env.example` 便于手工填写
+- 本机共享覆盖（可选）：`dotf path set --shared <key> <dir>` 写入 `.dotfiles.<hostname>.yaml`（建议提交仓库，各机持有自己的）
+- 优先级：主清单默认 < `.dotfiles.<hostname>.yaml` < `.dotfiles.env`
+- `dest` 中用 `{key}` 引用（**引用 `{key}` 时建议整个 dest 加引号**，避免 YAML 误判为 flow mapping）
+- 引用了未设置的 key 会明确报错并提示 `dotf path set`，不会静默展开成空路径
+
+```yaml
+paths:
+  projects: ~/projects
+links:
+  - src: shr/projects/space_labeler/.vscode/shr
+    dest: "{projects}/space-labeler/.vscode/shr"
+```
+
+```sh
+dotf path set space_labeler /Users/you/Projects/tools/macOS/space-labeler  # 写私有 .dotfiles.env
+dotf path list          # 查看全部映射(来源: env/host/manifest)、未设置引用
+dotf link               # link 时自动按本机映射展开
 ```
 
 ## 状态说明
