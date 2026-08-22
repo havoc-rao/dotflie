@@ -38,8 +38,9 @@ func LoadConfig() (*Config, error) {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		if rest, ok := strings.CutPrefix(line, "root="); ok {
-			c.Root = strings.Trim(strings.TrimSpace(rest), `"`)
+		kv := strings.SplitN(line, "=", 2)
+		if len(kv) == 2 && strings.TrimSpace(kv[0]) == "root" {
+			c.Root = strings.Trim(strings.TrimSpace(kv[1]), `"`)
 			if c.Root == "" {
 				return nil, fmt.Errorf("parse %s: invalid root", configPath())
 			}

@@ -74,12 +74,15 @@ dotf status        # 查看各条目链接状态
 | --- | --- |
 | `dotf init [--force]` | 生成 `.dotfiles.yaml` 模板 |
 | `dotf add <dest> [--as <src>]` | 收编本机路径：自动 mv 进仓库、记录清单并建链（可 `--no-link`/`--force`） |
+| `dotf project add <key> <项目根> --store <tool>` | 项目级配置一键收编：key 与存储归属 `--store`（无默认，归档 `<store>/projects/<key>/`）由用户显式设定，自动探测规则目录（`.shr`/`.vscode/shr`，`--dir` 可覆盖）并收编建链；工具如何发现规则位置由工具自理，dotf 不介入（`dotf project list` 查看） |
 | `dotf path [list\|get\|set\|unset]` | 管理机器路径变量（默认写私有 `.dotfiles.env`，`--shared` 写 hostname 文件） |
 | `dotf list [--json]` | 列出所有映射配置 |
 | `dotf status [--json]` | 显示每个映射的链接状态 |
 | `dotf link [目标...]` | 建立符号链接 |
-| `dotf unlink [目标...]` | 移除符号链接 |
+| `dotf unlink [目标...]` | 移除符号链接（仓库内容保留） |
+| `dotf remove <目标...>` | 撤销收编（add 逆操作）：校验链接归属后，文件移回原路径恢复真实性、清单删条目（`--dry-run` 预览；目标为真实文件时拒绝操作） |
 | `dotf sync [--no-fetch]` | 输出 git 同步状态：本地未提交变更、remote 是否落后/领先（fetch 失败会明确提示；`--no-fetch` 基于本地已有 refs） |
+| `dotf commit [消息]` | 版本化提交：`version` 文件 semver 三段（`0.0.1` 起步）默认 patch+1（`--minor`/`--major`/`--no-bump`），自动打 tag `vX.Y.Z`（`--no-tag` 关闭），标题带版本号、正文附变更明细；`--status` 只读查看当前版本与待提交变更 |
 | `dotf update [版本] [--check]` | 从 GitHub Releases 自更新到最新（或指定）版本 |
 
 > `link`/`unlink` 带目标参数时只处理匹配的条目（可按 src/dest 名称匹配）；不带参数时：

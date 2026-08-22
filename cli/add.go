@@ -26,6 +26,15 @@ func cmdAdd(args []string) error {
 	if err != nil {
 		return err
 	}
+	if srcAs == "" {
+		srcAs = defaultSrc(dest)
+	}
+	return addOne(dest, srcAs, force, noLink)
+}
+
+// addOne 收编单个路径:mv 进仓库、追加清单、建立链接。
+// 供 dotf add 与 dotf project add 复用;src 已存在且非 force 时返回已存在错误。
+func addOne(dest, srcAs string, force, noLink bool) error {
 	if _, err := os.Lstat(dest); err != nil {
 		return fmt.Errorf("source not found: %s", dest)
 	}
@@ -37,32 +46,30 @@ func cmdAdd(args []string) error {
 	if err != nil {
 		return fmt.Errorf("no manifest found (run dotf init first)")
 	}
-	// 1) 决定归档 src:--as 指定,或自动镜像(dest 去掉 home 前缀)
-	if srcAs == "" {
-		srcAs = defaultSrc(dest)
-	}
 	src := filepath.Clean(filepath.Join(root, srcAs))
-	if _, err := os.Lstat(src); err == nil && !force {
-		return fmt.Errorf("%s already exists in repo (use --force)", srcAs)
+	exists := false
+	if _, err := os.Lstat(src); err == nil {
+		exists = true
+		if !force {
+			return fmt.Errorf("%s already exists in repo (use --force)", srcAs)
+		}
 	}
-	// 2) mv 进仓库
 	if err := os.MkdirAll(filepath.Dir(src), 0o755); err != nil {
 		return err
 	}
-	if force {
+	if force && exists {
 		_ = os.RemoveAll(src)
 	}
 	if err := os.Rename(dest, src); err != nil {
 		return fmt.Errorf("move %s -> %s: %w (same filesystem required)", dest, src, err)
 	}
 	fmt.Printf("moved %s -> %s\n", dest, src)
-	// 3) 追加清单条目(dest 命中已设 paths 前缀时用 {key} 占位记录)
+	// 追加清单条目(dest 命中已设 paths 前缀时用 {key} 占位记录)
 	link := LinkSpec{Src: srcAs, Dest: inferPathRef(dest, pathsOf(root))}
 	if err := appendLink(mpath, link); err != nil {
 		return err
 	}
 	fmt.Printf("recorded: %s -> %s\n", srcAs, link.Dest)
-	// 4) 立即建立链接
 	if !noLink {
 		m, _, err := load()
 		if err != nil {
@@ -141,6 +148,11 @@ func appendLink(mpath string, link LinkSpec) error {
 		return fmt.Errorf("parse %s: %w", mpath, err)
 	}
 	m.Links = append(m.Links, link)
+	return saveManifest(mpath, &m)
+}
+
+// saveManifest 写回清单(头部注释 + links + paths;自动排序输出由 yaml.v3 处理)。
+func saveManifest(mpath string, m *Manifest) error {
 	var out any = map[string]any{"links": m.Links}
 	if len(m.Paths) > 0 {
 		out = map[string]any{"links": m.Links, "paths": m.Paths}
@@ -149,6 +161,6 @@ func appendLink(mpath string, link LinkSpec) error {
 	if err != nil {
 		return err
 	}
-	hdr := "# dotfiles 映射清单(src 相对仓库根;dest 支持 ~、$ENV 与 {paths} 引用;由 dotf add/link 维护)\n"
+	hdr := "# dotfiles 映射清单(src 相对仓库根;dest 支持 ~、$ENV 与 {paths} 引用;由 dotf add/link/remove 维护)\n"
 	return os.WriteFile(mpath, append([]byte(hdr), outData...), 0o644)
 }

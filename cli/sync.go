@@ -22,24 +22,17 @@ func cmdSync(args []string) error {
 	if err != nil {
 		return fmt.Errorf("no manifest found (run dotf init first)")
 	}
-	run := func(args ...string) (string, error) {
-		cmd := exec.Command("git", args...)
-		cmd.Dir = root
-		cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
-		out, err := cmd.CombinedOutput()
-		return strings.TrimSpace(string(out)), err
-	}
 	fmt.Println("git sync:")
 	// remote
-	url, err := run("remote", "get-url", "origin")
+	url, err := gitRun(root, "remote", "get-url", "origin")
 	if err != nil {
 		fmt.Println("  remote:  (none) — 仓库未配置 git remote,无法同步")
 		return nil
 	}
 	fmt.Printf("  remote:  %s\n", url)
 	// branch / upstream
-	branch, _ := run("branch", "--show-current")
-	upstream, uperr := run("rev-parse", "--abbrev-ref", "@{u}")
+	branch, _ := gitRun(root, "branch", "--show-current")
+	upstream, uperr := gitRun(root, "rev-parse", "--abbrev-ref", "@{u}")
 	switch {
 	case uperr == nil && branch != "":
 		fmt.Printf("  branch:  %s ⇄ %s\n", branch, upstream)
@@ -49,7 +42,7 @@ func cmdSync(args []string) error {
 		fmt.Println("  branch:  (detached HEAD)")
 	}
 	// local changes
-	if out, err := run("status", "--porcelain"); err == nil && strings.TrimSpace(out) != "" {
+	if out, err := gitRun(root, "status", "--porcelain"); err == nil && strings.TrimSpace(out) != "" {
 		lines := strings.Split(strings.TrimSpace(out), "\n")
 		fmt.Printf("  local:   %d 个未提交变更\n", len(lines))
 		for _, l := range lines {
@@ -86,7 +79,7 @@ func cmdSync(args []string) error {
 	}
 	// ahead / behind(基于最新 refs:fetch 成功或 --no-fetch 时的本地 refs)
 	if uperr == nil && fetchOK {
-		res, _ := run("rev-list", "--left-right", "--count", upstream+"...HEAD")
+		res, _ := gitRun(root, "rev-list", "--left-right", "--count", upstream+"...HEAD")
 		parts := strings.Fields(res)
 		if len(parts) == 2 {
 			behind, ahead := parts[0], parts[1]

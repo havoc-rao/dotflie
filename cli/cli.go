@@ -13,6 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/havoc420/dotfiles/version"
 )
@@ -38,6 +40,10 @@ func Run(args []string) error {
 		return cmdInit(rest)
 	case "config":
 		return cmdConfig(rest)
+	case "project":
+		return cmdProject(rest)
+	case "remove":
+		return cmdRemove(rest)
 	case "add":
 		return cmdAdd(rest)
 	case "path":
@@ -52,6 +58,8 @@ func Run(args []string) error {
 		return cmdLink(rest, true)
 	case "update":
 		return cmdUpdate(rest)
+	case "commit":
+		return cmdCommit(rest)
 	case "sync":
 		return cmdSync(rest)
 	case "version", "-v", "--version":
@@ -68,6 +76,15 @@ func Run(args []string) error {
 	default:
 		return fmt.Errorf("unknown command %q (try: dotf help)", cmd)
 	}
+}
+
+// gitRun 在 root 下执行 git,禁止终端交互提示,返回合并输出。
+func gitRun(root string, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = root
+	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
+	out, err := cmd.CombinedOutput()
+	return strings.TrimSpace(string(out)), err
 }
 
 // load 向上查找 manifest 并加载 paths,优先级:主清单 < .dotfiles.<hostname>.yaml(共享) < .dotfiles.env(私有)。
@@ -193,13 +210,18 @@ func usage() {
 用法:
   dotf init              在当前目录生成 .dotfiles.yaml 模板(并记录仓库根)
   dotf config            查看/设定工具配置 (set-root/unset-root:任意目录直接运行 dotf)
+  dotf project           项目级规则一键收编 (add <项目根> / list)
   dotf add <dest>        收编本机路径:自动 mv 进仓库、记录清单并建链
+  dotf remove <目标...>  撤销收编:文件移回原路径(恢复真实性)、清单删条目
   dotf path              管理机器路径变量 (list/get/set/unset)
   dotf list              列出所有映射配置
   dotf status            显示每个映射的链接状态
   dotf link [目标...]    建立符号链接 (目标可匹配 src/dest 名称)
   dotf unlink [目标...]  移除符号链接
   dotf sync [--no-fetch] 输出 git 同步状态(本地变更/remote 更新,fetch 失败会提示)
+  dotf commit [消息]     版本化提交:version 文件 patch+1(semver 0.0.1 起步,
+                        --minor/--major/--no-bump/--no-tag),自动打 tag vX.Y.Z,
+                        标题带版本号、正文附变更明细;--status 只读查看
   dotf update [版本]     从 GitHub Releases 自更新 (--check 仅检查)
 
 add 选项:
