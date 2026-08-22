@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/havoc420/dotfiles/tui"
@@ -25,6 +26,12 @@ func cmdInit(args []string) error {
 	// 生成本机路径文件的示例副本,并把私有文件加入 .gitignore
 	_ = os.WriteFile(envExampleFile(), []byte(envExampleContent), 0o644)
 	_ = ensureGitIgnore()
+	// 记录仓库根:之后任意目录可直接运行 dotf 命令,无需 cd
+	if abs, err := filepath.Abs("."); err == nil {
+		if err := SaveRoot(filepath.Clean(abs)); err == nil {
+			fmt.Printf("root 已记录: %s (任意目录可直接运行 dotf 命令)\n", filepath.Clean(abs))
+		}
+	}
 	return nil
 }
 

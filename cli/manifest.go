@@ -55,8 +55,19 @@ func Load(path string) (*Manifest, error) {
 	return m, nil
 }
 
-// Find 从 start 目录向上查找 manifest 文件，返回 (manifest路径, 仓库根目录)。
+// Find 定位 manifest 文件，返回 (manifest路径, 仓库根目录)。
+// 优先使用配置的仓库根(dotf config set-root / init 时自动记录),任意目录直接运行;
+// 未配置时从 start 目录向上查找。
 func Find(start string) (string, string, error) {
+	if root := ConfiguredRoot(); root != "" {
+		for _, name := range DefaultNames {
+			p := filepath.Join(root, name)
+			if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
+				return p, root, nil
+			}
+		}
+		return "", "", fmt.Errorf("manifest not found in configured root %s (get: dotf config unset-root)", root)
+	}
 	dir, err := filepath.Abs(start)
 	if err != nil {
 		return "", "", err

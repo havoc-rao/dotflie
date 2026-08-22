@@ -36,6 +36,8 @@ func Run(args []string) error {
 	switch cmd {
 	case "init":
 		return cmdInit(rest)
+	case "config":
+		return cmdConfig(rest)
 	case "add":
 		return cmdAdd(rest)
 	case "path":
@@ -189,7 +191,8 @@ func usage() {
 	fmt.Print(`dotf - 个人配置文件管理工具
 
 用法:
-  dotf init              在当前目录生成 .dotfiles.yaml 模板
+  dotf init              在当前目录生成 .dotfiles.yaml 模板(并记录仓库根)
+  dotf config            查看/设定工具配置 (set-root/unset-root:任意目录直接运行 dotf)
   dotf add <dest>        收编本机路径:自动 mv 进仓库、记录清单并建链
   dotf path              管理机器路径变量 (list/get/set/unset)
   dotf list              列出所有映射配置
