@@ -1,5 +1,5 @@
-bin/
 /dotfiles
 /dist/
 *.test
 .DS_Store
+/scripts/mise/

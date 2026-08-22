@@ -18,14 +18,31 @@ make install        # 构建并安装到 ~/.local/bin (DOTFILES_PREFIX 可覆盖
 ./scripts/install.sh # 等价脚本
 ```
 
+推荐用 mise 做版本管理（dev 本地构建 / release 发布版双通道）：
+
+```sh
+mise plugins link dotf scripts/mise/dotf   # 登记本地插件（dev 通道）
+mise use -g --yes dotf@dev                 # 激活 dev（零网络）
+# 正式版: mise install dotf@0.1.0 && mise use -g dotf@0.1.0
+# 详见 docs/mise.md
+```
+
 ## 版本与发版
 
-版本真相源为 `version/VERSION`，编译时通过 `go:embed` 静态嵌入，`dotf --version` 可查看。
+版本真相源为 `version/VERSION`，编译时通过 `go:embed` 静态嵌入；构建渠道（`Channel`）由 ldflags 注入：
+
+| 构建来源 | Channel | `dotf -v` 显示 |
+| --- | --- | --- |
+| `make build`（默认） | dev | `dotf 0.1.0-dev (...)` |
+| `make build CHANNEL=release` | release | `dotf 0.1.0 (...)` |
+| goreleaser snapshot | dev | `dotf 0.1.0-dev (...)` |
+| goreleaser release | release | `dotf 0.1.0 (...)` |
+| 裸 `go build`（无注入） | unknown | `dotf 0.1.0 (...)`（无后缀） |
 
 ```sh
 make release           # 自动 patch+1 (0.1.0 → 0.1.1)
 make release v=0.2.0   # 指定版本号 (升级 minor/major 时用)
-make snapshot          # 本地跑 goreleaser 快照构建(不发版,产物在 dist/)
+make snapshot          # 本地单平台 goreleaser 快照(不发版,产物在 dist/;多平台交叉构建只在 GitHub CI)
 # 写入 version/VERSION → commit → push → CI(.github/workflows/release.yml)
 # 自动打 tag 并跑 goreleaser 交叉编译发布到 GitHub Releases。
 ```
@@ -131,6 +148,8 @@ dotfiles/
 │   ├── link.go                  # 链接/解除/状态机
 │   └── update.go                # dotf update:GitHub Releases 自更新(标准库实现)
 ├── tui/tui.go                   # 过滤选择器 TUI(bubbletea + lipgloss,参考 shr/tui)
+├── scripts/mise/dotf/           # mise/asdf 兼容插件(dev 版本通道,零网络)
+├── docs/mise.md                 # mise 集成方案与踩坑记录
 ├── .goreleaser.yml              # 交叉编译发布配置(linux/darwin/windows × amd64/arm64)
 ├── .github/workflows/release.yml # push version/VERSION 自动打 tag + goreleaser 发版
 └── README.md

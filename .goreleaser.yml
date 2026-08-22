@@ -25,6 +25,8 @@ builds:
       # Version 由 go:embed VERSION 提供（单一真相源），此处只注入 git 元信息。
       - -X github.com/havoc420/dotfiles/cli.Commit={{.ShortCommit}}
       - -X github.com/havoc420/dotfiles/cli.Date={{.Date}}
+      # Channel：snapshot 构建 = dev（dotf -v 显示 -dev），正式发布 = release
+      - -X github.com/havoc420/dotfiles/cli.Channel={{ if .IsSnapshot }}dev{{ else }}release{{ end }}
 
 archives:
   - formats: [tar.gz]

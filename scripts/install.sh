@@ -9,7 +9,7 @@ PREFIX="${DOTFILES_PREFIX:-$HOME/.local/bin}"
 "$ROOT/scripts/build.sh"
 
 install -d "$PREFIX"
-install -m 0755 "$ROOT/bin/dotf" "$PREFIX/dotf"
+install -m 0755 "$ROOT/dist/dotf" "$PREFIX/dotf"
 echo "==> installed: $PREFIX/dotf"
 "$PREFIX/dotf" --version
 

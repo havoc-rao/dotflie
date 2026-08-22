@@ -1,18 +1,23 @@
-# dotf Makefile — 统一构建入口，产物输出到 bin/
+# dotf Makefile — 统一构建入口，产物输出到 dist/
 BINARY   := dotf
-DIST     := bin
+DIST     := dist
 VERSION  := $(shell tr -d '[:space:]' < version/VERSION)
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
 BUILD_DATE := $(shell date -u +%Y-%m-%d)
 
-# 版本变量在 cli 包（cli.Commit / cli.Date），main 委托 cli.Run
+# 构建渠道：dev = 本地开发构建（dotf -v 显示 0.1.0-dev）；release = 发布版（goreleaser 覆盖注入）。
+# 覆盖示例: make build CHANNEL=release
+CHANNEL  ?= dev
+
+# 版本变量在 cli 包（cli.Commit / cli.Date / cli.Channel），main 委托 cli.Run
 LDFLAGS  := -s -w \
 	-X github.com/havoc420/dotfiles/cli.Commit=$(GIT_COMMIT) \
-	-X github.com/havoc420/dotfiles/cli.Date=$(BUILD_DATE)
+	-X github.com/havoc420/dotfiles/cli.Date=$(BUILD_DATE) \
+	-X github.com/havoc420/dotfiles/cli.Channel=$(CHANNEL)
 
 .PHONY: build run release snapshot install test clean help
 
-## build: 编译当前平台二进制到 bin/dotfiles
+## build: 编译当前平台二进制到 dist/dotf
 build:
 	mkdir -p $(DIST)
 	go build -trimpath -ldflags "$(LDFLAGS)" -o $(DIST)/$(BINARY) .
@@ -41,9 +46,9 @@ release:
 	git push origin $$(git rev-parse --abbrev-ref HEAD); \
 	echo "✓ v$$cur → v$$new 已推送，CI 将自动打 tag 并发布 Release"
 
-## snapshot: 本地跑 goreleaser 快照构建（不发版，产物在 dist/，便于检查归档结构）
+## snapshot: 本地单平台 goreleaser 快照（不发版，产物在 dist/；多平台交叉构建只在 GitHub CI 跑）
 snapshot:
-	goreleaser release --snapshot --clean
+	goreleaser release --snapshot --clean --single-target
 
 ## install: 编译并安装到 ~/.local/bin（可 DOTFILES_PREFIX 覆盖）
 install: build
@@ -57,7 +62,7 @@ install: build
 test:
 	go test ./... -count=1
 
-## clean: 清理 bin/
+## clean: 清理 dist/
 clean:
 	rm -rf $(DIST)
 

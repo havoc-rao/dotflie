@@ -17,12 +17,13 @@ import (
 	"github.com/havoc420/dotfiles/version"
 )
 
-// Version 来自 version/VERSION（go:embed 嵌入）;
-// Commit/Date 由构建脚本通过 -X github.com/havoc420/dotfiles/cli.Commit / cli.Date 注入。
+// 版本信息：Version 来自 version/VERSION 文件（go:embed 嵌入），
+// Commit/Date/Channel 由构建方注入（Makefile 本地构建 → Channel=dev；goreleaser 发布版 → Channel=release）。
 var (
 	Version = version.Version
 	Commit  = "none"
 	Date    = "unknown"
+	Channel = "unknown" // 构建渠道：dev（本地构建）| release（发布版），ldflags -X 注入
 )
 
 // Run 执行 CLI 入口，返回 error（main 负责打印与退出码）。
@@ -46,7 +47,12 @@ func Run(args []string) error {
 	case "update":
 		return cmdUpdate(rest)
 	case "version", "-v", "--version":
-		fmt.Printf("dotf %s (commit %s, built %s)\n", Version, Commit, Date)
+		// dev 渠道的构建在版本号后附加 -dev 后缀，便于与发布版区分（如 mise 双版本管理）。
+		v := Version
+		if Channel == "dev" {
+			v += "-dev"
+		}
+		fmt.Printf("dotf %s (commit %s, built %s)\n", v, Commit, Date)
 		return nil
 	case "help", "-h", "--help":
 		usage()

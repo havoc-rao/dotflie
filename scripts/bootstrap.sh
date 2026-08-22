@@ -9,10 +9,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT"
 if [ ! -f .dotfiles.yaml ]; then
-  "$ROOT/bin/dotf" init
+  "$ROOT/dist/dotf" init
   echo
   echo "==> 已生成 .dotfiles.yaml,编辑清单后运行:"
   echo "    dotf link"
 else
-  "$ROOT/bin/dotf" link
+  "$ROOT/dist/dotf" link
 fi
