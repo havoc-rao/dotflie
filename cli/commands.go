@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/havoc420/dotfiles/tui"
@@ -19,15 +18,6 @@ func cmdInit(args []string) error {
 	path := DefaultNames[0]
 	if _, err := os.Stat(path); err == nil && !force {
 		return fmt.Errorf("%s already exists (use --force)", path)
-	}
-	entries, err := filepath.Glob("*")
-	if err != nil {
-		return err
-	}
-	if len(entries) == 0 {
-		_ = os.MkdirAll("zsh", 0o755)
-		_ = os.MkdirAll("git", 0o755)
-		_ = os.MkdirAll("nvim", 0o755)
 	}
 	if err := os.WriteFile(path, []byte(DefaultTemplate), 0o644); err != nil {
 		return err

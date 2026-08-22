@@ -79,6 +79,7 @@ dotf status        # 查看各条目链接状态
 | `dotf status [--json]` | 显示每个映射的链接状态 |
 | `dotf link [目标...]` | 建立符号链接 |
 | `dotf unlink [目标...]` | 移除符号链接 |
+| `dotf sync [--no-fetch]` | 输出 git 同步状态：本地未提交变更、remote 是否落后/领先（fetch 失败会明确提示；`--no-fetch` 基于本地已有 refs） |
 | `dotf update [版本] [--check]` | 从 GitHub Releases 自更新到最新（或指定）版本 |
 
 > `link`/`unlink` 带目标参数时只处理匹配的条目（可按 src/dest 名称匹配）；不带参数时：

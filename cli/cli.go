@@ -50,6 +50,8 @@ func Run(args []string) error {
 		return cmdLink(rest, true)
 	case "update":
 		return cmdUpdate(rest)
+	case "sync":
+		return cmdSync(rest)
 	case "version", "-v", "--version":
 		// dev 渠道的构建在版本号后附加 -dev 后缀，便于与发布版区分（如 mise 双版本管理）。
 		v := Version
@@ -194,6 +196,7 @@ func usage() {
   dotf status            显示每个映射的链接状态
   dotf link [目标...]    建立符号链接 (目标可匹配 src/dest 名称)
   dotf unlink [目标...]  移除符号链接
+  dotf sync [--no-fetch] 输出 git 同步状态(本地变更/remote 更新,fetch 失败会提示)
   dotf update [版本]     从 GitHub Releases 自更新 (--check 仅检查)
 
 add 选项:

@@ -2,7 +2,6 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -52,9 +51,7 @@ func Load(path string) (*Manifest, error) {
 	if err := yaml.Unmarshal(data, m); err != nil {
 		return nil, fmt.Errorf("parse %s: %w", path, err)
 	}
-	if len(m.Links) == 0 {
-		return nil, errors.New("manifest has no links")
-	}
+	// 允许空清单(init 模板无示例条目):list/status 输出为空,link 报 no matching links。
 	return m, nil
 }
 
@@ -274,24 +271,15 @@ func (m *Manifest) MissingRefs() []string {
 	return missing
 }
 
-// DefaultTemplate 是 init 命令写入的模板。
+// DefaultTemplate 是 init 命令写入的模板(不含示例条目,避免 status 出现 missing-src 噪音)。
 const DefaultTemplate = `# dotfiles 映射清单
 # src 相对本仓库根目录; dest 为目标绝对路径(支持 ~、$ENV 与 {paths} 引用)。
 # 目录条目整体符号链接(不展开内容),便于整目录同步。
 #
-# paths: 机器路径变量(可选)。默认值写在此处,dest 中用 {key} 引用;
-# 每台机器的实际值用 ` + "`dotf path set <key> <dir>`" + ` 写入本机
-# .dotfiles.<hostname>.yaml(建议提交仓库,各机只有自己的生效)。
-paths:
-  projects: ~/projects
-links:
-  - src: zsh/.zshrc
-    dest: ~/.zshrc
-  - src: git/.gitconfig
-    dest: ~/.gitconfig
-  - src: nvim
-    dest: ~/.config/nvim
-  # 本机路径示例(dest 引用 {key} 时建议整体加引号,避免 YAML 误判为 flow mapping):
-  # - src: shr/projects/space_labeler/.vscode/shr
-  #   dest: "{projects}/space-labeler/.vscode/shr"
+# 收编本机路径:  dotf add <dest> [--as <src>]    (自动 mv 进仓库、记录清单并建链)
+# 本机路径变量:  dotf path set <key> <dir>       (默认写私有 .dotfiles.env,已 gitignore)
+# 项目类路径示例(dest 引用 {key} 建议加引号):
+#   dotf path set space_labeler ~/Projects/macOS/space-labeler
+#   dotf add ~/Projects/macOS/space-labeler/.vscode/shr --as shr/projects/space_labeler/.vscode/shr
+links: []
 `
