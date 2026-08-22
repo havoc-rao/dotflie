@@ -2,7 +2,7 @@
 # 文档：https://goreleaser.com
 version: 2
 
-project_name: dotfiles
+project_name: dotflie
 
 builds:
   - id: dotf
@@ -55,5 +55,5 @@ release:
   draft: false
   prerelease: auto
   github:
-    owner: havoc420
-    name: dotfiles
+    owner: havoc-rao
+    name: dotflie

@@ -3,7 +3,7 @@
 // 实现参考 shr（cli/update.go），仅用 Go 标准库，不引入外部依赖：
 //  1. 解析最新 release tag（优先走 releases/latest 重定向，不受 api 限流影响；
 //     失败回退 REST API，支持 GITHUB_TOKEN / GH_TOKEN 鉴权）
-//  2. 下载 dotfiles_<ver>_<os>_<arch>.tar.gz（windows 为 .zip）
+//  2. 下载 dotflie_<ver>_<os>_<arch>.tar.gz（windows 为 .zip）
 //  3. 从归档中提取 dotf 二进制
 //  4. 原子替换当前可执行文件（Unix rename；Windows 先把旧文件移开）
 package cli
@@ -26,11 +26,14 @@ import (
 )
 
 const (
-	githubOwner = "havoc420"
-	githubRepo  = "dotfiles"
+	// 发布仓库（GitHub owner/repo），必须与 .goreleaser.yml release.github 一致。
+	githubOwner = "havoc-rao"
+	githubRepo  = "dotflie"
 	// projectName 与 .goreleaser.yml 的 project_name 一致：决定 release 资产文件名前缀
-	// （资产形如 dotfiles_0.1.0_darwin_arm64.tar.gz）。
-	projectName = "dotfiles"
+	// （资产形如 dotflie_0.1.0_darwin_arm64.tar.gz）。
+	projectName = "dotflie"
+	// modulePath 是 go.mod 的 module 名（go install 用），与发布仓库名无强关联。
+	modulePath = "github.com/havoc420/dotfiles"
 	// binaryName 是 goreleaser builds 的 binary 名，即归档内二进制名。
 	binaryName = "dotf"
 )
@@ -152,8 +155,8 @@ func latestViaAPI() (string, error) {
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("could not resolve latest release (network issue or API rate limit): %w\nset GITHUB_TOKEN to bypass rate limit, or install via Go:\n  go install github.com/%s/%s@latest",
-			err, githubOwner, githubRepo)
+		return "", fmt.Errorf("could not resolve latest release (network issue or API rate limit): %w\nset GITHUB_TOKEN to bypass rate limit, or install via Go:\n  go install %s@latest",
+			err, modulePath)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -191,8 +194,8 @@ func selfUpdate(tag string) error {
 	fmt.Printf("dotf: downloading %s\n", url)
 	data, err := httpGetBytes(url)
 	if err != nil {
-		return fmt.Errorf("download failed for %s/%s: %w\nbrowse assets: https://github.com/%s/%s/releases/tag/%s\nor install via Go: go install github.com/%s/%s@latest",
-			osName, arch, err, githubOwner, githubRepo, tag, githubOwner, githubRepo)
+		return fmt.Errorf("download failed for %s/%s: %w\nbrowse assets: https://github.com/%s/%s/releases/tag/%s\nor install via Go: go install %s@latest",
+			osName, arch, err, githubOwner, githubRepo, tag, modulePath)
 	}
 
 	binData, err := extractBinary(data, ext, bin)
