@@ -13,12 +13,23 @@
 
 ## 安装
 
+**方式一（推荐）：curl 一键安装 GitHub Releases 预编译二进制（无需 Go 工具链）**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/havoc-rao/dotflie/main/scripts/install-release.sh | bash
+# 自定义安装目录: DOTFILES_PREFIX=~/bin curl -fsSL ... | bash
+```
+
+脚本自动探测平台（linux / darwin / windows × amd64 / arm64），从 GitHub Releases 下载最新版 `dotflie_<版本>_<os>_<arch>.tar.gz`，校验 SHA256 后安装到 `~/.local/bin`（`DOTFILES_PREFIX` 可覆盖，`DOTF_VERSION` 可固定版本）。已安装后日常更新直接用 `dotf update` 即可，无需再跑脚本。
+
+**方式二：源码构建**
+
 ```sh
 make install        # 构建并安装到 ~/.local/bin (DOTFILES_PREFIX 可覆盖)
 ./scripts/install.sh # 等价脚本
 ```
 
-推荐用 mise 做版本管理（dev 本地构建 / release 发布版双通道）：
+**方式三：mise 版本管理**（dev 本地构建 / release 发布版双通道）：
 
 ```sh
 mise plugins link dotf scripts/mise/dotf   # 登记本地插件（dev 通道）
@@ -186,6 +197,7 @@ dotfiles/
 │   └── update.go                # dotf update:GitHub Releases 自更新(标准库实现)
 ├── tui/tui.go                   # 过滤选择器 TUI(bubbletea + lipgloss,参考 shr/tui)
 ├── scripts/mise/dotf/           # mise/asdf 兼容插件(dev 版本通道,零网络)
+├── scripts/install-release.sh   # curl 一键安装:从 GitHub Releases 拉取预编译二进制
 ├── docs/mise.md                 # mise 集成方案与踩坑记录
 ├── .goreleaser.yml              # 交叉编译发布配置(linux/darwin/windows × amd64/arm64)
 ├── .github/workflows/release.yml # push version/VERSION 自动打 tag + goreleaser 发版
