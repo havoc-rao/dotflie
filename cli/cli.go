@@ -68,6 +68,11 @@ func Run(args []string) error {
 		if Channel == "dev" {
 			v += "-dev"
 		}
+		if Channel == "release" {
+			// release 构建只显示 x.x.x 版本号，不带 commit/date 细节。
+			fmt.Printf("dotf %s\n", v)
+			return nil
+		}
 		fmt.Printf("dotf %s (commit %s, built %s)\n", v, Commit, Date)
 		return nil
 	case "help", "-h", "--help":

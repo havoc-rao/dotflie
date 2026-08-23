@@ -44,11 +44,13 @@ mise use -g --yes dotf@dev                 # 激活 dev（零网络）
 
 | 构建来源 | Channel | `dotf -v` 显示 |
 | --- | --- | --- |
-| `make build`（默认） | dev | `dotf 0.1.0-dev (...)` |
-| `make build CHANNEL=release` | release | `dotf 0.1.0 (...)` |
-| goreleaser snapshot | dev | `dotf 0.1.0-dev (...)` |
-| goreleaser release | release | `dotf 0.1.0 (...)` |
-| 裸 `go build`（无注入） | unknown | `dotf 0.1.0 (...)`（无后缀） |
+| `make build`（默认） | dev | `dotf 0.1.0-dev (commit ..., built ...)` |
+| `make build CHANNEL=release` | release | `dotf 0.1.0` |
+| goreleaser snapshot | dev | `dotf 0.1.0-dev (commit ..., built ...)` |
+| goreleaser release | release | `dotf 0.1.0` |
+| 裸 `go build`（无注入） | unknown | `dotf 0.1.0 (commit none, built unknown)`（无后缀） |
+
+> release 渠道（Channel=release）的版本输出精确到 `x.x.x` 粒度；commit/built 细节仅 dev/本地构建展示，便于确认构建新鲜度。
 
 ```sh
 make release           # 自动 patch+1 (0.1.0 → 0.1.1)
