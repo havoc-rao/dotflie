@@ -63,13 +63,13 @@ func addOne(dest, srcAs string, force, noLink bool) error {
 	if err := os.Rename(dest, src); err != nil {
 		return fmt.Errorf("move %s -> %s: %w (same filesystem required)", dest, src, err)
 	}
-	fmt.Printf("moved %s -> %s\n", dest, src)
+	fmt.Printf("%s %s -> %s\n", step("moved", 22), dest, src)
 	// 追加清单条目(dest 命中已设 paths 前缀时用 {key} 占位记录)
 	link := LinkSpec{Src: srcAs, Dest: inferPathRef(dest, pathsOf(root))}
 	if err := appendLink(mpath, link); err != nil {
 		return err
 	}
-	fmt.Printf("recorded: %s -> %s\n", srcAs, link.Dest)
+	fmt.Printf("%s %s -> %s\n", step("recorded", 22), srcAs, link.Dest)
 	if !noLink {
 		m, _, err := load()
 		if err != nil {
@@ -85,9 +85,9 @@ func addOne(dest, srcAs string, force, noLink bool) error {
 		if err := linkEntry(entries[0], Options{}); err != nil {
 			return fmt.Errorf("link failed: %w", err)
 		}
-		fmt.Printf("linked %s\n", dest)
+		fmt.Printf("%s %s\n", okTag("linked", 22), dest)
 	} else {
-		fmt.Printf("skipped linking (--no-link): run `dotf link %s` to link\n", srcAs)
+		fmt.Printf("%s\n", warn("skipped linking (--no-link): run `dotf link "+srcAs+"` to link"))
 	}
 	return nil
 }

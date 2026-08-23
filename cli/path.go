@@ -91,18 +91,18 @@ func cmdPathList(args []string) error {
 		return printJSON(out)
 	}
 	if len(keys) == 0 {
-		fmt.Println("(no paths set; use: dotf path set <key> <dir>)")
+		fmt.Println(dim("(no paths set; use: dotf path set <key> <dir>)"))
 	}
 	for _, k := range keys {
 		mark := " "
 		if fi, err := os.Stat(merged[k]); err != nil || !fi.IsDir() {
-			mark = "?"
+			mark = warn("?")
 		}
-		fmt.Printf("%s %-24s %s  [%s]\n", mark, k, merged[k], pathSourceOf(root, k, over, env))
+		fmt.Printf("%s %s %s  %s\n", mark, outR.tag(ansiBold+ansiCyan, k, 24), merged[k], dim("["+pathSourceOf(root, k, over, env)+"]"))
 	}
 	// 提示 links 中引用了但未定义的 key
 	for _, k := range m.MissingRefs() {
-		fmt.Printf("! %s referenced in links but not set (use: dotf path set %s <dir>)\n", k, k)
+		fmt.Printf("%s %s referenced in links but not set (use: dotf path set %s <dir>)\n", failTag("!", 0), k, k)
 	}
 	return nil
 }
@@ -206,16 +206,16 @@ func cmdPathSet(args []string) error {
 		return err
 	}
 	if paths[key] == abs {
-		fmt.Printf("%s = %s (unchanged)\n", key, abs)
+		fmt.Printf("%s = %s (%s)\n", info(key), abs, dim("unchanged"))
 		return nil
 	}
 	paths[key] = abs
 	if err := store.save(root, paths); err != nil {
 		return err
 	}
-	fmt.Printf("%s = %s  ->  %s  [%s]\n", key, abs, store.path(root), store.kind)
+	fmt.Printf("%s = %s  ->  %s  %s\n", info(key), abs, dim(store.path(root)), dim("["+store.kind+"]"))
 	if fi, err := os.Stat(abs); err != nil || !fi.IsDir() {
-		fmt.Fprintf(os.Stderr, "dotf: warning: %s does not exist yet\n", abs)
+		fmt.Fprintf(os.Stderr, "%s %s does not exist yet\n", eWarn("dotf: warning:"), abs)
 	}
 	return nil
 }
@@ -244,7 +244,7 @@ func cmdPathUnset(args []string) error {
 	if err := store.save(root, paths); err != nil {
 		return err
 	}
-	fmt.Printf("unset %s (from %s)\n", key, store.path(root))
+	fmt.Printf("%s %s (%s)\n", step("unset", 0), info(key), dim("from "+store.path(root)))
 	return nil
 }
 

@@ -113,16 +113,16 @@ func cmdCommit(args []string) error {
 	tagged := false
 	if !noTag {
 		if _, err := gitRun(root, "tag", "v"+new); err != nil {
-			fmt.Fprintf(os.Stderr, "dotf: warning: tag v%s 未创建(%v)\n", new, err)
+			fmt.Fprintf(os.Stderr, "%s tag v%s 未创建(%v)\n", eWarn("dotf: warning:"), new, err)
 		} else {
 			tagged = true
 		}
 	}
 	// 6) 结果摘要(version 文件本身也在变更里,故 +1)
 	hash, _ := gitRun(root, "rev-parse", "--short", "HEAD")
-	fmt.Printf("v%s → v%s (%d files) committed: %s", old, new, len(lines)+1, hash)
+	fmt.Printf("%s → %s (%d files) %s: %s", info("v"+old), info("v"+new), len(lines)+1, okTag("committed", 0), hash)
 	if tagged {
-		fmt.Printf(" (tag v%s)", new)
+		fmt.Printf(" (%s)", info("tag v"+new))
 	}
 	fmt.Println()
 	return nil
@@ -143,7 +143,7 @@ func commitStatus() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("version: v%s\n", ver.String())
+	fmt.Printf("%s %s\n", field("version:"), info("v"+ver.String()))
 	out, _ := gitRun(root, "status", "--porcelain")
 	var lines []string
 	for _, l := range strings.Split(out, "\n") {
@@ -152,10 +152,10 @@ func commitStatus() error {
 		}
 	}
 	if len(lines) == 0 {
-		fmt.Println("changes:  none (工作区干净)")
+		fmt.Printf("%s  %s\n", field("changes:"), okTag("none (工作区干净)", 0))
 		return nil
 	}
-	fmt.Printf("changes:  %d 项待提交\n", len(lines))
+	fmt.Printf("%s  %s\n", field("changes:"), warn(fmt.Sprintf("%d 项待提交", len(lines))))
 	for _, l := range lines {
 		fmt.Printf("          %s\n", l)
 	}

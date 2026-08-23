@@ -22,34 +22,34 @@ func cmdSync(args []string) error {
 	if err != nil {
 		return fmt.Errorf("no manifest found (run dotf init first)")
 	}
-	fmt.Println("git sync:")
+	fmt.Println(info("git sync:"))
 	// remote
 	url, err := gitRun(root, "remote", "get-url", "origin")
 	if err != nil {
-		fmt.Println("  remote:  (none) — 仓库未配置 git remote,无法同步")
+		fmt.Printf("  %s  %s\n", field("remote:"), warn("(none) — 仓库未配置 git remote,无法同步"))
 		return nil
 	}
-	fmt.Printf("  remote:  %s\n", url)
+	fmt.Printf("  %s  %s\n", field("remote:"), url)
 	// branch / upstream
 	branch, _ := gitRun(root, "branch", "--show-current")
 	upstream, uperr := gitRun(root, "rev-parse", "--abbrev-ref", "@{u}")
 	switch {
 	case uperr == nil && branch != "":
-		fmt.Printf("  branch:  %s ⇄ %s\n", branch, upstream)
+		fmt.Printf("  %s  %s ⇄ %s\n", field("branch:"), branch, upstream)
 	case branch != "":
-		fmt.Printf("  branch:  %s (未设置 upstream,首次推送: git push -u origin %s)\n", branch, branch)
+		fmt.Printf("  %s  %s (%s)\n", field("branch:"), branch, warn("未设置 upstream,首次推送: git push -u origin "+branch))
 	default:
-		fmt.Println("  branch:  (detached HEAD)")
+		fmt.Printf("  %s  %s\n", field("branch:"), dim("(detached HEAD)"))
 	}
 	// local changes
 	if out, err := gitRun(root, "status", "--porcelain"); err == nil && strings.TrimSpace(out) != "" {
 		lines := strings.Split(strings.TrimSpace(out), "\n")
-		fmt.Printf("  local:   %d 个未提交变更\n", len(lines))
+		fmt.Printf("  %s  %s\n", field("local:"), warn(fmt.Sprintf("%d 个未提交变更", len(lines))))
 		for _, l := range lines {
 			fmt.Printf("            %s\n", strings.TrimSpace(l))
 		}
 	} else {
-		fmt.Println("  local:   clean (无未提交变更)")
+		fmt.Printf("  %s  %s\n", field("local:"), okTag("clean (无未提交变更)", 0))
 	}
 	// fetch(只要有 remote 就执行,与 upstream 无关):失败必须明确提示,不静默
 	fetchOK := noFetch
@@ -61,21 +61,21 @@ func cmdSync(args []string) error {
 		cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			if ctx.Err() == context.DeadlineExceeded {
-				fmt.Println("  fetch:   FAILED (30s timeout) — 无法检查 remote 更新")
+				fmt.Printf("  %s  %s (30s timeout) — %s\n", field("fetch:"), failTag("FAILED", 0), "无法检查 remote 更新")
 			} else {
 				msg := strings.TrimSpace(string(out))
 				if msg == "" {
 					msg = err.Error()
 				}
-				fmt.Printf("  fetch:   FAILED — %s\n", msg)
+				fmt.Printf("  %s  %s — %s\n", field("fetch:"), failTag("FAILED", 0), msg)
 			}
-			fmt.Println("  remote:  unknown (fetch 失败,remote 状态不可信;可稍后重试 dotf sync)")
+			fmt.Printf("  %s  %s\n", field("remote:"), warn("unknown (fetch 失败,remote 状态不可信;可稍后重试 dotf sync)"))
 		} else {
 			fetchOK = true
-			fmt.Println("  fetch:   ok")
+			fmt.Printf("  %s  %s\n", field("fetch:"), okTag("ok", 0))
 		}
 	} else if noFetch {
-		fmt.Println("  fetch:   skipped (--no-fetch,remote 状态基于本地已有 refs)")
+		fmt.Printf("  %s  %s\n", field("fetch:"), step("skipped (--no-fetch,remote 状态基于本地已有 refs)", 0))
 	}
 	// ahead / behind(基于最新 refs:fetch 成功或 --no-fetch 时的本地 refs)
 	if uperr == nil && fetchOK {
@@ -85,13 +85,13 @@ func cmdSync(args []string) error {
 			behind, ahead := parts[0], parts[1]
 			switch {
 			case behind != "0" && ahead != "0":
-				fmt.Printf("  remote:  behind %s / ahead %s 提交(建议: 先 git pull 再 git push)\n", behind, ahead)
+				fmt.Printf("  %s  %s提交(%s)\n", field("remote:"), warn(fmt.Sprintf("behind %s / ahead %s", behind, ahead)), info("建议: 先 git pull 再 git push"))
 			case behind != "0":
-				fmt.Printf("  remote:  behind %s 提交(remote 有新更新,建议: git pull)\n", behind)
+				fmt.Printf("  %s  %s提交(%s)\n", field("remote:"), warn(fmt.Sprintf("behind %s", behind)), info("建议: git pull"))
 			case ahead != "0":
-				fmt.Printf("  remote:  ahead %s 提交(本地领先,建议: git push)\n", ahead)
+				fmt.Printf("  %s  %s提交(%s)\n", field("remote:"), warn(fmt.Sprintf("ahead %s", ahead)), info("建议: git push"))
 			default:
-				fmt.Println("  remote:  up to date (与 remote 一致)")
+				fmt.Printf("  %s  %s\n", field("remote:"), okTag("up to date (与 remote 一致)", 0))
 			}
 		}
 	}

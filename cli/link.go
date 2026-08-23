@@ -223,9 +223,23 @@ func report(o Options, msg string) {
 // Describe 返回 Entry 的可读描述行。
 func (e Entry) Describe() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "%-22s %-28s -> %s", e.Status, e.Link.Src, e.DestAbs)
+	fmt.Fprintf(&b, "%s %-28s -> %s", statusTag(e.Status), e.Link.Src, e.DestAbs)
 	if e.Message != "" {
 		b.WriteString("  (" + e.Message + ")")
 	}
 	return b.String()
+}
+
+// statusTag 返回状态列的彩色标签:linked 绿 / not-linked 青 / stale 黄 / missing-src、conflict 红。
+func statusTag(s Status) string {
+	switch s {
+	case StatusLinked:
+		return okTag("linked", 22)
+	case StatusNotLinked:
+		return step("not-linked", 22)
+	case StatusStale:
+		return outR.tag(ansiBold+ansiYellow, s.String(), 22)
+	default:
+		return failTag(s.String(), 22)
+	}
 }

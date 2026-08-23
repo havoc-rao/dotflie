@@ -78,10 +78,10 @@ func ConfiguredRoot() string {
 func cmdConfig(args []string) error {
 	if len(args) == 0 {
 		if r := ConfiguredRoot(); r != "" {
-			fmt.Printf("root: %s\n", r)
-			fmt.Printf("config: %s\n", configPath())
+			fmt.Printf("%s %s\n", field("root:"), info(r))
+			fmt.Printf("%s %s\n", field("config:"), configPath())
 		} else {
-			fmt.Println("root: (未设置 — 使用当前目录向上查找清单;可用 dotf config set-root <dir>)")
+			fmt.Printf("%s  %s\n", field("root:"), warn("(未设置 — 使用当前目录向上查找清单;可用 dotf config set-root <dir>)"))
 		}
 		return nil
 	}
@@ -98,17 +98,17 @@ func cmdConfig(args []string) error {
 		if err := SaveRoot(root); err != nil {
 			return err
 		}
-		fmt.Printf("root 已设定: %s\n", root)
+		fmt.Printf("%s %s\n", okTag("root 已设定:", 0), info(root))
 		return nil
 	case "unset-root":
 		if err := ClearRoot(); err != nil {
 			if os.IsNotExist(err) {
-				fmt.Println("root: (未设置)")
+				fmt.Printf("%s  %s\n", field("root:"), dim("(未设置)"))
 				return nil
 			}
 			return err
 		}
-		fmt.Println("root 已清除,恢复从当前目录向上查找")
+		fmt.Printf("%s\n", okTag("root 已清除,恢复从当前目录向上查找", 0))
 		return nil
 	default:
 		return fmt.Errorf("unknown config subcommand %q (set-root|unset-root)", args[0])

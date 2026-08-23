@@ -139,7 +139,7 @@ func parseFlags(args []string, booleans map[string]*bool, values map[string]*str
 				}
 				continue
 			}
-			fmt.Fprintf(os.Stderr, "dotf: ignoring unknown flag %s\n", name)
+			fmt.Fprintf(os.Stderr, "%s ignoring unknown flag %s\n", eWarn("dotf:"), name)
 			continue
 		}
 		pos = append(pos, a)

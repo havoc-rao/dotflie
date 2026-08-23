@@ -84,10 +84,10 @@ func cmdProjectAdd(args []string) error {
 	if err := setEnvPath(root, key, proj); err != nil {
 		return err
 	}
-	fmt.Printf("store:  %s/projects/%s/ (archive location)\n", store, key)
+	fmt.Printf("%s  %s/projects/%s/ %s\n", field("store:"), info(store), info(key), dim("(archive location)"))
 	// 通用收编:规则目录本体(工具发现机制由工具自理)
 	if err := addOne(rulesPath, store+"/projects/"+key+"/"+filepath.ToSlash(rd), false, false); err != nil {
-		fmt.Printf("skip rules dir: %v\n", err)
+		fmt.Printf("%s: %v\n", warn("skip rules dir"), err)
 	}
 	return nil
 }
@@ -119,7 +119,7 @@ func setEnvPath(root, key, dir string) error {
 	if err := SaveEnvPaths(root, paths); err != nil {
 		return err
 	}
-	fmt.Printf("path %s = %s (private .dotfiles.env)\n", key, dir)
+	fmt.Printf("%s %s = %s %s\n", step("path", 0), info(key), dir, dim("(private .dotfiles.env)"))
 	return nil
 }
 
@@ -191,9 +191,14 @@ func cmdProjectList(args []string) error {
 		}
 		return rows[i].key < rows[j].key
 	})
-	fmt.Printf("%-10s %-22s %-46s %s\n", "store", "key", "project path", "status")
+	fmt.Printf("%s %s %s %s\n",
+		outR.tag(ansiBold, "store", 10), outR.tag(ansiBold, "key", 22), outR.tag(ansiBold, "project path", 46), outR.tag(ansiBold, "status", 0))
 	for _, r := range rows {
-		fmt.Printf("%-10s %-22s %-46s %s\n", r.store, r.key, r.path, r.status)
+		fmt.Printf("%s %s %s %s\n",
+			outR.tag(ansiBold+ansiCyan, r.store, 10),
+			outR.tag(ansiBold+ansiCyan, r.key, 22),
+			r.path,
+			projectStatus(r.status))
 	}
 	return nil
 }

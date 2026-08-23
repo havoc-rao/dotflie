@@ -29,7 +29,7 @@ func cmdInit(args []string) error {
 	// 记录仓库根:之后任意目录可直接运行 dotf 命令,无需 cd
 	if abs, err := filepath.Abs("."); err == nil {
 		if err := SaveRoot(filepath.Clean(abs)); err == nil {
-			fmt.Printf("root 已记录: %s (任意目录可直接运行 dotf 命令)\n", filepath.Clean(abs))
+			fmt.Printf("%s %s %s\n", okTag("root 已记录:", 0), info(filepath.Clean(abs)), dim("(任意目录可直接运行 dotf 命令)"))
 		}
 	}
 	return nil
@@ -162,17 +162,17 @@ func applyLinks(entries []Entry, o Options, unlink bool) error {
 		if err != nil {
 			failed++
 			if o.Quiet {
-				fmt.Fprintf(os.Stderr, "dotf: %s\n", err)
+				fmt.Fprintf(os.Stderr, "%s %s\n", eFail("dotf:", 0), err)
 			} else {
-				fmt.Printf("%-22s %s  ->  %s\n", "ERROR", e.Link.Src, e.DestAbs)
-				fmt.Fprintf(os.Stderr, "  %v\n", err)
+				fmt.Printf("%s %s  ->  %s\n", failTag("ERROR", 22), e.Link.Src, e.DestAbs)
+				fmt.Fprintf(os.Stderr, "%s\n", eErr("  "+err.Error()))
 			}
 		} else if !o.Quiet && !o.DryRun {
 			verb := "linked"
 			if unlink {
 				verb = "unlinked"
 			}
-			fmt.Printf("%-22s %s\n", verb, e.DestAbs)
+			fmt.Printf("%s %s\n", step(verb, 22), e.DestAbs)
 		}
 	}
 	if failed > 0 {
@@ -220,11 +220,11 @@ func linkInteractive(m *Manifest, root string, o Options, unlink bool) error {
 		return err
 	}
 	if res.Cancelled {
-		fmt.Println("已取消")
+		fmt.Println(info("已取消"))
 		return nil
 	}
 	if len(res.Selected) == 0 {
-		fmt.Println("未选择任何条目")
+		fmt.Println(dim("未选择任何条目"))
 		return nil
 	}
 	// 勾选的 src 对应到 Entry

@@ -75,20 +75,20 @@ func cmdUpdate(args []string) error {
 	if want != "" && want != "latest" {
 		label = "target"
 	}
-	fmt.Printf("dotf: current %s, %s %s\n", Version, label, target)
+	fmt.Printf("%s current %s, %s %s\n", info("dotf:"), Version, label, info(target))
 
 	// 2. 比较版本
 	switch cmp := compareSemver(target, Version); {
 	case cmp == 0:
-		fmt.Println("dotf: already up to date")
+		fmt.Printf("%s %s\n", info("dotf:"), okTag("already up to date", 0))
 		return nil
 	case cmp < 0:
 		// 当前版本比最新 release 还新（多为 dev 构建），跳过降级。
-		fmt.Printf("dotf: current %s is newer than latest release %s; skipping\n", Version, target)
+		fmt.Printf("%s current %s is newer than latest release %s; %s\n", info("dotf:"), Version, target, warn("skipping"))
 		return nil
 	}
 	if checkOnly {
-		fmt.Println("dotf: update available (run `dotf update` to install)")
+		fmt.Printf("%s %s (run `dotf update` to install)\n", info("dotf:"), step("update available", 0))
 		return nil
 	}
 
@@ -96,7 +96,7 @@ func cmdUpdate(args []string) error {
 	if err := selfUpdate(tag); err != nil {
 		return err
 	}
-	fmt.Printf("dotf: updated %s -> %s\n", Version, target)
+	fmt.Printf("%s %s %s -> %s\n", info("dotf:"), okTag("updated", 0), Version, target)
 	return nil
 }
 
@@ -191,7 +191,7 @@ func selfUpdate(tag string) error {
 	url := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s_%s_%s_%s.%s",
 		githubOwner, githubRepo, tag, projectName, ver, osName, arch, ext)
 
-	fmt.Printf("dotf: downloading %s\n", url)
+	fmt.Printf("%s %s\n", info("dotf:"), dim("downloading "+url))
 	data, err := httpGetBytes(url)
 	if err != nil {
 		return fmt.Errorf("download failed for %s/%s: %w\nbrowse assets: https://github.com/%s/%s/releases/tag/%s\nor install via Go: go install %s@latest",

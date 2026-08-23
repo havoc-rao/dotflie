@@ -34,10 +34,10 @@ func cmdRemove(args []string) error {
 		if err := removeOne(m, root, e, quiet, dry); err != nil {
 			failed++
 			if quiet {
-				fmt.Fprintf(os.Stderr, "dotf: %v\n", err)
+				fmt.Fprintf(os.Stderr, "%s %v\n", eFail("dotf:", 0), err)
 			} else {
-				fmt.Printf("%-22s %s\n", "ERROR", e.Link.Src)
-				fmt.Fprintf(os.Stderr, "  %v\n", err)
+				fmt.Printf("%s %s\n", failTag("ERROR", 22), e.Link.Src)
+				fmt.Fprintf(os.Stderr, "%s\n", eErr("  "+err.Error()))
 			}
 		}
 	}
@@ -96,7 +96,7 @@ func removeOne(m *Manifest, root string, e Entry, quiet, dry bool) error {
 	// 5) 清理仓库侧空父目录链(不越过仓库根)
 	cleanupEmptyDirs(filepath.Dir(e.SrcAbs), root)
 	if !quiet {
-		fmt.Printf("%-22s %s -> %s (restored)\n", "removed", e.Link.Src, e.DestAbs)
+		fmt.Printf("%s %s -> %s (restored)\n", step("removed", 22), e.Link.Src, e.DestAbs)
 	}
 	return nil
 }
