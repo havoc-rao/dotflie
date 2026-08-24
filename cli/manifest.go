@@ -31,6 +31,10 @@ type LinkSpec struct {
 	Src string `yaml:"src"`
 	// Dest 目标绝对路径（支持 ~ 与 $VAR 展开）。
 	Dest string `yaml:"dest"`
+	// Only/Except 按机器过滤链接（hostname 匹配，忽略大小写与 .local 后缀）：
+	// Only 非空时仅这些机器链接；Except 命中则跳过；两者不可同时设置。
+	Only   []string `yaml:"only,omitempty"`
+	Except []string `yaml:"except,omitempty"`
 }
 
 // DefaultNames 是候选 manifest 文件名（按优先级）。
@@ -161,6 +165,37 @@ func HostTag() string {
 	return strings.TrimSuffix(h, ".local")
 }
 
+// hostTagNorm 归一化机器名用于匹配:小写、去空白、去 .local 后缀。
+func hostTagNorm(s string) string {
+	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(s)), ".local")
+}
+
+// matchHost 判断 host 是否命中 patterns(归一化后精确匹配;pattern 带 .local 后缀亦可)。
+func matchHost(host string, patterns []string) bool {
+	h := hostTagNorm(host)
+	for _, p := range patterns {
+		if hostTagNorm(p) == h {
+			return true
+		}
+	}
+	return false
+}
+
+// LinkAppliesToHost 判断条目是否适用于指定机器(通常传 HostTag()):
+// except 命中则排除;only 非空时要求命中;两者同时设置视为清单错误。
+func (l LinkSpec) LinkAppliesToHost(host string) (bool, error) {
+	if len(l.Only) > 0 && len(l.Except) > 0 {
+		return false, fmt.Errorf("link %q: only and except cannot both be set", l.Src)
+	}
+	if len(l.Except) > 0 && matchHost(host, l.Except) {
+		return false, nil
+	}
+	if len(l.Only) > 0 && !matchHost(host, l.Only) {
+		return false, nil
+	}
+	return true, nil
+}
+
 // HostPath 返回本机覆盖文件路径:<仓库根>/.dotfiles.<hostname>.yaml。
 func HostPath(root string) string {
 	return filepath.Join(root, ".dotfiles."+HostTag()+".yaml")
@@ -271,15 +306,26 @@ func (m *Manifest) MissingRefs() []string {
 	var missing []string
 	seen := map[string]bool{}
 	for _, l := range m.Links {
-		for _, match := range refPattern.FindAllStringSubmatch(l.Dest, -1) {
-			key := match[1]
-			if _, ok := m.Paths[key]; !ok && !seen[key] {
-				seen[key] = true
-				missing = append(missing, key)
+		for _, k := range unsetRefKeys(l.Dest, m.Paths) {
+			if !seen[k] {
+				seen[k] = true
+				missing = append(missing, k)
 			}
 		}
 	}
 	return missing
+}
+
+// unsetRefKeys 返回 dest 中引用了但未在 paths 中定义的 key 列表。
+func unsetRefKeys(dest string, paths map[string]string) []string {
+	var out []string
+	for _, match := range refPattern.FindAllStringSubmatch(dest, -1) {
+		k := match[1]
+		if _, ok := paths[k]; !ok {
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 // DefaultTemplate 是 init 命令写入的模板(不含示例条目,避免 status 出现 missing-src 噪音)。
@@ -289,6 +335,13 @@ const DefaultTemplate = `# dotfiles 映射清单
 #
 # 收编本机路径:  dotf add <dest> [--as <src>]    (自动 mv 进仓库、记录清单并建链)
 # 本机路径变量:  dotf path set <key> <dir>       (默认写私有 .dotfiles.env,已 gitignore)
+#   未设置 {key} 的条目默认被忽略(不链接、全量操作不报错);配置 key 后才生效。
+# 按机器过滤(可选): only 仅这些机器链接; except 这些机器跳过(不可同时设置;
+#   hostname 匹配忽略大小写与 .local 后缀)。
+#   - src: shr/projects/space_labeler/.vscode/shr
+#     dest: "{space_labeler}/space-labeler/.vscode/shr"
+#     only: [macbook-pro]        # 仅 macbook-pro 链接
+#     # except: [vm-222-213]     # 或:除该机器外都链接
 # 项目类路径示例(dest 引用 {key} 建议加引号):
 #   dotf path set space_labeler ~/Projects/macOS/space-labeler
 #   dotf add ~/Projects/macOS/space-labeler/.vscode/shr --as shr/projects/space_labeler/.vscode/shr

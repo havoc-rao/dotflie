@@ -79,6 +79,9 @@ func info(s string) string { return outR.paint(ansiBold+ansiBlue, s) }
 // dim 次要文案(灰色):来源标记、非关键提示等。
 func dim(s string) string { return outR.paint(ansiGray, s) }
 
+// dimTag 灰色定宽标签(与 tag 对齐):ignored/skipped 等次要状态。
+func dimTag(s string, w int) string { return outR.tag(ansiGray, s, w) }
+
 // ---- stderr 样式 ----
 
 // eErr 错误文案(红色)。

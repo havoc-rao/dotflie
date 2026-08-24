@@ -160,6 +160,10 @@ func cmdProjectList(args []string) error {
 					// 展开其 dest 判断是否已链接——不依赖 shr 专属标记,通用
 					bestSrc, bestDest := "", ""
 					for _, l := range m.Links {
+						// 跳过本机不适用(only/except 过滤)的条目
+						if ok, err := l.LinkAppliesToHost(HostTag()); err != nil || !ok {
+							continue
+						}
 						if strings.HasPrefix(l.Src, store+"/projects/"+key+"/") &&
 							!strings.HasSuffix(l.Src, "/.shr-dir") {
 							if bestSrc == "" || len(l.Src) < len(bestSrc) {

@@ -81,11 +81,19 @@ func cmdList(args []string) error {
 	if asJSON {
 		out := make([]map[string]string, 0, len(entries))
 		for _, e := range entries {
-			out = append(out, map[string]string{"src": e.Link.Src, "dest": e.DestAbs})
+			row := map[string]string{"src": e.Link.Src, "dest": e.DestAbs}
+			if e.ResolveErr != nil {
+				row["error"] = e.ResolveErr.Error()
+			}
+			out = append(out, row)
 		}
 		return printJSON(out)
 	}
 	for _, e := range entries {
+		if e.ResolveErr != nil {
+			fmt.Printf("%s  %s  %s\n", dimTag("·", 0), pad(e.Link.Src, 28), dim("(忽略: "+e.ignoreReason()+")"))
+			continue
+		}
 		fmt.Printf("%s  %s\n", pad(e.Link.Src, 28), e.DestAbs)
 	}
 	return nil
@@ -105,7 +113,11 @@ func cmdStatus(args []string) error {
 	if asJSON {
 		out := make([]map[string]string, 0, len(entries))
 		for _, e := range entries {
-			out = append(out, map[string]string{"status": e.Status.String(), "src": e.Link.Src, "dest": e.DestAbs})
+			row := map[string]string{"status": e.Status.String(), "src": e.Link.Src, "dest": e.DestAbs}
+			if e.ResolveErr != nil {
+				row["error"] = e.ResolveErr.Error()
+			}
+			out = append(out, row)
 		}
 		return printJSON(out)
 	}
@@ -146,13 +158,21 @@ func cmdLink(args []string, unlink bool) error {
 	if len(entries) == 0 {
 		return fmt.Errorf("no matching links")
 	}
-	return applyLinks(entries, o, unlink)
+	return applyLinks(entries, o, unlink, len(targets) > 0)
 }
 
 // applyLinks 逐个执行链接/解除并汇总错误。
-func applyLinks(entries []Entry, o Options, unlink bool) error {
+// strict 表示显式指定目标:ref-unset(未设置 {key})条目报错提示;
+// 否则(全量/交互)按默认语义忽略,不视为失败。
+func applyLinks(entries []Entry, o Options, unlink, strict bool) error {
 	failed := 0
 	for _, e := range entries {
+		if e.ResolveErr != nil && !strict {
+			if !o.Quiet {
+				fmt.Printf("%s %s  %s\n", dimTag("ignored", 22), e.Link.Src, dim("("+e.ignoreReason()+")"))
+			}
+			continue
+		}
 		var err error
 		if unlink {
 			err = unlinkEntry(e, o)
@@ -164,7 +184,11 @@ func applyLinks(entries []Entry, o Options, unlink bool) error {
 			if o.Quiet {
 				fmt.Fprintf(os.Stderr, "%s %s\n", eFail("dotf:", 0), err)
 			} else {
-				fmt.Printf("%s %s  ->  %s\n", failTag("ERROR", 22), e.Link.Src, e.DestAbs)
+				dest := e.DestAbs
+				if e.ResolveErr != nil {
+					dest = e.Link.Dest // 未解析时显示原始 dest(可能含 {key})
+				}
+				fmt.Printf("%s %s  ->  %s\n", failTag("ERROR", 22), e.Link.Src, dest)
 				fmt.Fprintf(os.Stderr, "%s\n", eErr("  "+err.Error()))
 			}
 		} else if !o.Quiet && !o.DryRun {
@@ -194,7 +218,12 @@ func linkInteractive(m *Manifest, root string, o Options, unlink bool) error {
 	}
 	cands := make([]tui.Candidate, 0, len(entries))
 	var chosen []string
+	var skipped []string // 未设置 {key} 而被忽略的条目,不参与勾选
 	for _, e := range entries {
+		if e.ResolveErr != nil {
+			skipped = append(skipped, e.Link.Src)
+			continue
+		}
 		cands = append(cands, tui.Candidate{Value: e.Link.Src, Desc: e.DestAbs})
 		if !unlink && e.Status == StatusNotLinked {
 			chosen = append(chosen, e.Link.Src)
@@ -202,6 +231,13 @@ func linkInteractive(m *Manifest, root string, o Options, unlink bool) error {
 		if unlink && (e.Status == StatusLinked || e.Status == StatusStale) {
 			chosen = append(chosen, e.Link.Src)
 		}
+	}
+	if len(skipped) > 0 {
+		fmt.Println(dim("忽略未设置 {key} 的条目: " + strings.Join(skipped, ", ") + " (dotf path set 后生效)"))
+	}
+	if len(cands) == 0 {
+		fmt.Println(dim("没有可处理的条目"))
+		return nil
 	}
 	in, out, err := openTTY()
 	if err != nil {
@@ -238,5 +274,5 @@ func linkInteractive(m *Manifest, root string, o Options, unlink bool) error {
 			picked = append(picked, e)
 		}
 	}
-	return applyLinks(picked, o, unlink)
+	return applyLinks(picked, o, unlink, false)
 }

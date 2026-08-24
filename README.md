@@ -149,7 +149,22 @@ links:
     dest: ~/.gitconfig
   - src: nvim
     dest: ~/.config/nvim
+  - src: shr/projects/space_labeler/.vscode/shr
+    dest: "{space_labeler}/space-labeler/.vscode/shr"
+    only: [macbook-pro]      # 仅这些机器链接(hostname 忽略大小写与 .local 后缀)
+    # except: [vm-222-213]   # 或:这些机器跳过(与 only 不可同时设置)
 ```
+
+### 按机器过滤链接(only / except)
+
+有些配置只在特定机器上需要(如某项目只在开发机存在、服务器上不需要)。在条目上加 `only`/`except` 即可按机器过滤,两者不可同时设置:
+
+- `only: [host1, host2]` — 仅这些机器链接该条目
+- `except: [host1, host2]` — 这些机器跳过该条目
+
+hostname 匹配忽略大小写与 `.local` 后缀。被过滤的条目在本机完全不可见（`list`/`status`/`link` 均不出现），因此**也无需为本机设置它引用的 `{key}`**。
+
+> 两种"按机器启用"的方式：`only`/`except` 按 hostname 精确控制（即使不引用 `{key}` 也可用）；引用 `{key}` 的条目则天然具备"配置了 key 才生效，否则默认忽略"的语义（见下节），适合按"这台机器上有没有这个项目"来决定是否启用。
 
 ### paths:跨机器路径变量
 
@@ -160,7 +175,7 @@ links:
 - 本机共享覆盖（可选）：`dotf path set --shared <key> <dir>` 写入 `.dotfiles.<hostname>.yaml`（建议提交仓库，各机持有自己的）
 - 优先级：主清单默认 < `.dotfiles.<hostname>.yaml` < `.dotfiles.env`
 - `dest` 中用 `{key}` 引用（**引用 `{key}` 时建议整个 dest 加引号**，避免 YAML 误判为 flow mapping）
-- 引用了未设置的 key 会明确报错并提示 `dotf path set`，不会静默展开成空路径
+- **未设置 `{key}` 的条目默认被忽略**（状态 `ref-unset`）：不链接、全量 `link`/`unlink` 不报错；`dotf path set <key> <dir>` 配置后该条目才生效。想"只有配置了 key 的机器才启用某条 link"，只需**不要在共享清单的 `paths` 段给该 key 写默认值**，各机自行 `dotf path set` 决定是否启用
 
 ```yaml
 paths:
@@ -185,6 +200,7 @@ dotf link               # link 时自动按本机映射展开
 | `missing-src` | 源文件/目录不存在 |
 | `conflict` | 目标位置是真实文件（非符号链接） |
 | `stale` | 目标是指向别处的符号链接 |
+| `ref-unset` | dest 引用了未设置的 `{paths.key}`，该条目默认被忽略（不链接、全量操作不报错；`dotf path set` 后生效） |
 
 ## 目录结构
 

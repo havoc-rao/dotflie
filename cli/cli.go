@@ -239,6 +239,14 @@ paths 说明:
   主清单 paths 段 < .dotfiles.<hostname>.yaml(dotf path set --shared) <
   .dotfiles.env(默认写入,已 gitignore 不提交)。
   示例: dest: "{projects}/space-labeler/.vscode/shr"(引用 {key} 时建议整体加引号)
+  未设置 {key} 的条目默认被忽略(ref-unset):不链接,全量 link/unlink 不报错,
+  dotf path set <key> <dir> 后该条目才生效;显式指定该条目为目标时才提示设置。
+
+link 条目过滤(可选):
+  清单条目可加 only/except 按机器过滤(hostname 匹配,忽略大小写与 .local 后缀):
+    only: [macbook-pro]    # 仅这些机器链接
+    except: [vm-222-213]   # 这些机器跳过(与 only 不可同时设置)
+  被过滤的条目不出现在 list/status/link 中,无需为本机设置对应 {key}。
 
 交互:
   在终端中直接运行 link/unlink(不带目标参数)会进入 TUI 多选:

@@ -31,6 +31,16 @@ func cmdRemove(args []string) error {
 	}
 	failed := 0
 	for _, e := range entries {
+		if e.ResolveErr != nil {
+			failed++
+			if quiet {
+				fmt.Fprintf(os.Stderr, "%s %v\n", eFail("dotf:", 0), e.ResolveErr)
+			} else {
+				fmt.Printf("%s %s\n", failTag("ERROR", 22), e.Link.Src)
+				fmt.Fprintf(os.Stderr, "%s\n", eErr("  "+e.ResolveErr.Error()))
+			}
+			continue
+		}
 		if err := removeOne(m, root, e, quiet, dry); err != nil {
 			failed++
 			if quiet {
